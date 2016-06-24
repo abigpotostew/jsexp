@@ -3,13 +3,13 @@
     <head>
         <title>Reaction diffusion simulation</title>
         <link rel="stylesheet" type="text/css" href="../css/experiments.css"/>
-        <link rel="stylesheet" type="text/css" href="../gradientui/gradientui.css"/>
+        <!-- <link rel="stylesheet" type="text/css" href="../gradientui/gradientui.css"/> -->
         <link type="text/css" href="../3rd/custom-theme/jquery-ui-1.8.16.custom.css" rel="stylesheet" />
         <script type="text/javascript" src="../3rd/jquery-1.6.2.min.js"></script>
         <script type="text/javascript" src="../3rd/jquery-ui-1.8.16.custom.min.js"></script>
-        <script type="text/javascript" src="../3rd/colorPicker.js"></script>
+        <!-- <script type="text/javascript" src="../3rd/colorPicker.js"></script> -->
         <script type="text/javascript" src="../3rd/three.min.js"></script>
-        <script type="text/javascript" src="../gradientui/gradientui.js"></script>
+        <!-- <script type="text/javascript" src="../gradientui/gradientui.js"></script>-->
         <!--script type="text/javascript" src="http://mrdoob.github.com/three.js/build/three.min.js"></script-->
         <script type="x-shader/x-vertex" id="standardVertexShader">
             varying vec2 vUv;
@@ -20,14 +20,14 @@
                 gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
             }
         </script>
-        <script type="x-shader/x-fragment" id="gsFragmentShader">
+        <script type="x-shader/x-fragment" id="drawFragmentShader">
             varying vec2 vUv;
             uniform float screenWidth;
             uniform float screenHeight;
-            uniform sampler2D tSource;
-            uniform float delta;
-            uniform sampler2D feed_texture;
-            uniform float kill;
+            uniform sampler2D drawSource;
+            //uniform float delta;
+            //uniform float feed;
+            //uniform float kill;
             uniform vec2 brush;
             
             vec2 texel = vec2(1.0/screenWidth, 1.0/screenHeight);
@@ -38,43 +38,42 @@
             {
                 if(brush.x < -5.0)
                 {
-                    gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+                    gl_FragColor = vec4(1.0, 1.0, 1.0, 0.0);
                     return;
                 }
                 
-                float feed = texture2D(feed_texture, vUv).r * 0.1;
-                //float kill = vUv.x * 0.073;
                 
-                vec2 uv = texture2D(tSource, vUv).rg;
+                /*
                 vec2 uv0 = texture2D(tSource, vUv+vec2(-step_x, 0.0)).rg;
                 vec2 uv1 = texture2D(tSource, vUv+vec2(step_x, 0.0)).rg;
                 vec2 uv2 = texture2D(tSource, vUv+vec2(0.0, -step_y)).rg;
                 vec2 uv3 = texture2D(tSource, vUv+vec2(0.0, step_y)).rg;
                 
                 vec2 lapl = (uv0 + uv1 + uv2 + uv3 - 4.0*uv);//10485.76;
-                float du = /*0.00002*/0.2097*0.5*lapl.r - uv.r*uv.g*uv.g + feed*(1.0 - uv.r);
-                float dv = /*0.00001*/0.105*0.5*lapl.g + uv.r*uv.g*uv.g - (feed+kill)*uv.g;
-                vec2 dst = uv + delta*vec2(du, dv);
+                float du = 0.2097*lapl.r - uv.r*uv.g*uv.g + feed*(1.0 - uv.r);
+                float dv = 0.105*lapl.g + uv.r*uv.g*uv.g - (feed+kill)*uv.g;
+                vec2 dst = uv + delta*vec2(du, dv);*/
                 
+                vec3 rgb = texture2D(drawSource, vUv).rgb;
                 if(brush.x > 0.0)
                 {
                     vec2 diff = (vUv - brush)/texel;
                     float dist = dot(diff, diff);
-                    if(dist < 5.0)
-                        dst.g = 0.9;
+                    if(dist < 10.0)
+                        rgb= vec3( 0.,0.9,0.);
                 }
                 
-                gl_FragColor = vec4(dst.r, dst.g, 0.0, 1.0);
+                gl_FragColor = vec4(rgb, 1.0);
             }
         </script>
         <script type="x-shader/x-fragment" id="screenFragmentShader">
             varying vec2 vUv;
             uniform float screenWidth;
             uniform float screenHeight;
-            uniform sampler2D tSource;
+            uniform sampler2D drawSource;
             uniform float delta;
-            uniform sampler2D feed_texture;
-            uniform float kill;
+            //uniform float feed;
+            //uniform float kill;
             uniform vec4 color1;
             uniform vec4 color2;
             uniform vec4 color3;
@@ -85,13 +84,13 @@
             
             void main()
             {
-                float value = texture2D(tSource, vUv).g;
+                //float value = texture2D(drawSource, vUv).g;
                 //int step = int(floor(value));
                 //float a = fract(value);
                 float a;
                 vec3 col;
                 
-                if(value <= color1.a)
+                /*if(value <= color1.a)
                     col = color1.rgb;
                 if(value > color1.a && value <= color2.a)
                 {
@@ -115,15 +114,13 @@
                 }
                 if(value > color5.a)
                     col = color5.rgb;
-                
-            	gl_FragColor = vec4(col.r, col.g, col.b, 1.0);
-                //gl_FragColor = texture2D(feed_texture, vUv);
+                */
+            	gl_FragColor = vec4(texture2D(drawSource, vUv).rgb, 1.0);
             }
         </script>
-        <script type="text/javascript" src="lena.js"></script>
-        <script type="text/javascript" src="grayscott.js"></script>
+        <script type="text/javascript" src="frameanimator.js"></script>
         <meta charset="UTF-8">
-        <style>
+        <!-- <style>
             #gradient
             {
                 height: 40px;
@@ -132,33 +129,34 @@
                 margin-left:auto;
                 margin-right:auto;
             }
-        </style>
+        </style>-->
         <script>
             $(function()
             {
-                $("#gradient").gradient({values:
+                /*$("#gradient").gradient({values:
                                         [[0, '#000000'],
-                                         [0.4, '#FFFFFF'],
-                                         [0.9, '#FFFFFF'],
-                                         [1.0, '#FFFFFF'],
-                                         [1.0, '#FFFFFF']]});
+                                         [0.2, '#00FF00'],
+                                         [0.21, '#FFFF00'],
+                                         [0.4, '#FF0000'],
+                                         [0.6, '#FFFFFF']]});
                 
                 // KLUDGE!
                 colorPicker.offsetX = -512;
                 colorPicker.offsetY = -256;
                 
                 document.getElementById("gradient").onselectstart = function () {return false;};
+                */
                 
-                // init();
+                init();
             });
-        </script>
+        </script> 
     </head>
     <body>
         <header>
-            <h1>Gray-Scott model with image-based feed rate (alpha)</h1>
+            <h1>Reaction diffusion system (Gray-Scott model)</h1>
         </header>
         <div id="simulation">
-        <canvas id="myCanvas" class="viewer" style="width:512px;height:512px"></canvas>
+        <canvas id="myCanvas" class="viewer" style="width:1024px;height:512px"></canvas>
         <aside class="panel">
             <section id="instructions">
                 <header><h4>Instructions</h4></header>
@@ -169,21 +167,50 @@
                 </ol>
             </section>
             <section id="controls">
+                <!--header><h4>Controls</h4></header-->
+                <form name="ex">
+                    Presets:
+                    <select name="scene" style="width:100%"
+                        onchange="loadPreset(document.ex.scene.selectedIndex)">
+                        <option value="0" selected="selected">Default</option>
+                        <option value="1">Solitons</option>
+                        <option value="2">Pulsating solitons</option>
+                        <option value="3">Worms</option>
+                        <option value="4">Mazes</option>
+                        <option value="5">Holes</option>
+                        <option value="6">Chaos</option>
+                        <option value="7">Chaos and holes</option>
+                        <option value="8">Moving spots</option>
+                        <option value="9">Spots and loops</option>
+                        <option value="10">Waves</option>
+                        <option value="11">The U-Skate world</option>
+                    </select>
+                </form>
                 <p style="text-align:center">
                     <button id="btn_clear" onclick="clean()">Clear</button>
                     <button id="btn_snapshot" onclick="snapshot()">Take snapshot</button>
+                    <button id="btn_fullscreen" onclick="fullscreen()">Fullscreen mode</button>
+                    <button id="btn_frame1" onclick="frame1()">Frame 1</button>
+                    <button id="btn_frame2" onclick="frame2()">Frame 2</button>
                 <p/>
+                <h4 class="unsafe">Advanced settings</h4>
+                Feed rate:
+                <span class="remark" id="replenishment"></span><br/>
+                <div id="sld_replenishment" class="slider"></div>
+                
                 Death rate:
                 <span class ="remark" id="diminishment"></span><br/>
                 <div id="sld_diminishment" class="slider"></div>
                 Colors:
                 <div id="gradient" style=""></div>
+                <div style="font-size:x-small">Share (paste and press enter):</div>
+                <div style="text-align:center"><input id="share" style="width:85%"/></div>
             </section>
         </aside>
         </div>
         <footer>
                 <div id="copyright">
-                        &copy;2013
+                        &copy;2012
                         <a href="https://twitter.com/pmneila">@pmneila</a>
                         <a href="https://github.com/pmneila/jsexp">Github</a>
                         <a id="notworking" href="#">Not working?</a>

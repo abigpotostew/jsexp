@@ -7,7 +7,7 @@
  * p.mneila at upm.es
  */
 
-(function(){
+//
 
 // Canvas.
 var canvas;
@@ -21,76 +21,24 @@ var mMouseDown = false;
 var mRenderer;
 var mScene;
 var mCamera;
+var frames=[];
+var currentFrameIdx=-1;
+
 var mUniforms;
-var mColors;
-var mColorsNeedUpdate = true;
 var mLastTime = 0;
 
-var mTexture1, mTexture2;
-var mGSMaterial, mScreenMaterial;
+var mTexture1, mTexture2, tDrawSource, tOtherBuffer, currentDrawSource;
+
+var mDrawMaterial, mScreenMaterial;
 var mScreenQuad;
 
 var mToggled = false;
 
 var mMinusOnes = new THREE.Vector2(-1, -1);
 
-// Some presets.
-var presets = [
-    { // Default
-        //feed: 0.018,
-        //kill: 0.051
-        feed: 0.037,
-        kill: 0.06
-    },
-    { // Solitons
-        feed: 0.03,
-        kill: 0.062
-    },
-    { // Pulsating solitons
-        feed: 0.025,
-        kill: 0.06
-    },
-    { // Worms.
-        feed: 0.078,
-        kill: 0.061
-    },
-    { // Mazes
-        feed: 0.029,
-        kill: 0.057
-    },
-    { // Holes
-        feed: 0.039,
-        kill: 0.058
-    },
-    { // Chaos
-        feed: 0.026,
-        kill: 0.051
-    },
-    { // Chaos and holes (by clem)
-        feed: 0.034,
-        kill: 0.056
-    },
-    { // Moving spots.
-        feed: 0.014,
-        kill: 0.054
-    },
-    { // Spots and loops.
-        feed: 0.018,
-        kill: 0.051
-    },
-    { // Waves
-        feed: 0.014,
-        kill: 0.045
-    },
-    { // The U-Skate World
-        feed: 0.062,
-        kill: 0.06093
-    }
-];
 
-// Configuration.
-var feed = presets[0].feed;
-var kill = presets[0].kill;
+
+(function(){
 
 init = function()
 {
@@ -113,10 +61,10 @@ init = function()
     mUniforms = {
         screenWidth: {type: "f", value: undefined},
         screenHeight: {type: "f", value: undefined},
-        tSource: {type: "t", value: undefined},
-        delta: {type: "f", value: 1.0},
-        feed: {type: "f", value: feed},
-        kill: {type: "f", value: kill},
+        drawSource: {type: "t", value: undefined},
+        //delta: {type: "f", value: 1.0},
+        //feed: {type: "f", value: feed},
+        //kill: {type: "f", value: kill},
         brush: {type: "v2", value: new THREE.Vector2(-10, -10)},
         color1: {type: "v4", value: new THREE.Vector4(0, 0, 0.0, 0)},
         color2: {type: "v4", value: new THREE.Vector4(0, 1, 0, 0.2)},
@@ -124,13 +72,13 @@ init = function()
         color4: {type: "v4", value: new THREE.Vector4(1, 0, 0, 0.4)},
         color5: {type: "v4", value: new THREE.Vector4(1, 1, 1, 0.6)}
     };
-    mColors = [mUniforms.color1, mUniforms.color2, mUniforms.color3, mUniforms.color4, mUniforms.color5];
-    $("#gradient").gradient("setUpdateCallback", onUpdatedColor);
+    //mColors = [mUniforms.color1, mUniforms.color2, mUniforms.color3, mUniforms.color4, mUniforms.color5];
+    //$("#gradient").gradient("setUpdateCallback", onUpdatedColor);
     
-    mGSMaterial = new THREE.ShaderMaterial({
+    mDrawMaterial = new THREE.ShaderMaterial({
             uniforms: mUniforms,
             vertexShader: document.getElementById('standardVertexShader').textContent,
-            fragmentShader: document.getElementById('gsFragmentShader').textContent,
+            fragmentShader: document.getElementById('drawFragmentShader').textContent,
         });
     mScreenMaterial = new THREE.ShaderMaterial({
                 uniforms: mUniforms,
@@ -139,21 +87,38 @@ init = function()
             });
     
     var plane = new THREE.PlaneGeometry(1.0, 1.0);
-    mScreenQuad = new THREE.Mesh(plane, mScreenMaterial);
+    mScreenQuad = new THREE.Mesh (plane, mScreenMaterial);//new THREE.MeshBasicMaterial({color : new THREE.Color( 0xff0000 )}));//, mScreenMaterial);
     mScene.add(mScreenQuad);
-    
-    mColorsNeedUpdate = true;
     
     resize(canvas.clientWidth, canvas.clientHeight);
     
     render(0);
-    mUniforms.brush.value = new THREE.Vector2(0.5, 0.5);
+    //mUniforms.brush.value = new THREE.Vector2(0.5, 0.5);
     mLastTime = new Date().getTime();
     requestAnimationFrame(render);
+    console.log("init");
+}
+
+frame1 = function()
+{
+    currentFrameIdx = 0;
+    currentFrame = getFrameAt(currentFrameIdx);
+}
+
+frame2 = function()
+{
+    currentFrameIdx = 1;
+    currentFrame = getFrameAt(currentFrameIdx);
+}
+
+var getFrameAt = function(i)
+{
+    return frames[i];
 }
 
 var resize = function(width, height)
 {
+    console.log("resize");
     // Set the new shape of canvas.
     canvasQ.width(width);
     canvasQ.height(height);
@@ -164,25 +129,43 @@ var resize = function(width, height)
     
     mRenderer.setSize(canvasWidth, canvasHeight);
     
+
+    var createFrame = function()
+    {
+        return new THREE.WebGLRenderTarget(canvasWidth, canvasHeight,
+                        {minFilter: THREE.LinearFilter,
+                         magFilter: THREE.LinearFilter,
+                         format: THREE.RGBAFormat,
+                         type: THREE.FloatType});
+    }
+
     // TODO: Possible memory leak?
-    mTexture1 = new THREE.WebGLRenderTarget(canvasWidth/2, canvasHeight/2,
-                        {minFilter: THREE.LinearFilter,
-                         magFilter: THREE.LinearFilter,
-                         format: THREE.RGBAFormat,
-                         type: THREE.FloatType});
-    mTexture2 = new THREE.WebGLRenderTarget(canvasWidth/2, canvasHeight/2,
-                        {minFilter: THREE.LinearFilter,
-                         magFilter: THREE.LinearFilter,
-                         format: THREE.RGBAFormat,
-                         type: THREE.FloatType});
-    mTexture1.wrapS = THREE.RepeatWrapping;
+    tDrawSource = createFrame();
+    tOtherBuffer = createFrame();
+
+    frames.push( createFrame() );
+    frames.push( createFrame() );
+    currentDrawSource = getFrameAt(0);
+
+
+    //tDrawSource = mTexture1;
+    //tOtherBuffer = mTexture2;
+
+    /*mTexture1.wrapS = THREE.RepeatWrapping;
     mTexture1.wrapT = THREE.RepeatWrapping;
     mTexture2.wrapS = THREE.RepeatWrapping;
-    mTexture2.wrapT = THREE.RepeatWrapping;
+    mTexture2.wrapT = THREE.RepeatWrapping;*/
     
-    mUniforms.screenWidth.value = canvasWidth/2;
-    mUniforms.screenHeight.value = canvasHeight/2;
+    mUniforms.screenWidth.value = canvasWidth;
+    mUniforms.screenHeight.value = canvasHeight;
+
+    //mUniforms.drawSource.value = mTexture1.texture;
+    //mRenderer.render (mScene, mCamera, mTexture2, true);
+    //mUniforms.drawSource.value = mTexture2.texture;
+    //mRenderer.render (mScene, mCamera, mTexture1, true);
+    mUniforms.brush.value = mMinusOnes;
 }
+var iter = 0;
 
 var render = function(time)
 {
@@ -191,37 +174,36 @@ var render = function(time)
         dt = 0.8;
     mLastTime = time;
     
-    mScreenQuad.material = mGSMaterial;
-    mUniforms.delta.value = dt;
-    mUniforms.feed.value = feed;
-    mUniforms.kill.value = kill;
+    //mScreenQuad.material = mGSMaterial;
+    //mUniforms.delta.value = dt;
+    //mUniforms.feed.value = feed;
+    //mUniforms.kill.value = kill;
     
-    for(var i=0; i<8; ++i)
-    {
-        if(!mToggled)
-        {
-            mUniforms.tSource.value = mTexture1;
-            mRenderer.render(mScene, mCamera, mTexture2, true);
-            mUniforms.tSource.value = mTexture2;
-        }
-        else
-        {
-            mUniforms.tSource.value = mTexture2;
-            mRenderer.render(mScene, mCamera, mTexture1, true);
-            mUniforms.tSource.value = mTexture1;
-        }
-        
-        mToggled = !mToggled;
+    //var currentFrame = null;
+
+    if (mMouseDown){
+        mScreenQuad.material = mDrawMaterial;
+        mUniforms.drawSource.value = currentDrawSource.texture;
+        mRenderer.render(mScene, mCamera, tDrawSource, false);//tDrawSource
+
+        frames[currentFrameIdx] = tDrawSource;
+        tDrawSource = currentDrawSource;
+        currentDrawSource = frames[currentFrameIdx];
         mUniforms.brush.value = mMinusOnes;
     }
+
     
-    if(mColorsNeedUpdate)
-        updateUniformsColors();
+    //if(mColorsNeedUpdate)
+    //    updateUniformsColors();
     
+    //pizza
+
     mScreenQuad.material = mScreenMaterial;
-    mRenderer.render(mScene, mCamera);
+    mUniforms.drawSource.value = currentDrawSource.texture;
+    mRenderer.render(mScene, mCamera, null, true);
     
     requestAnimationFrame(render);
+    //console.log("yo");
 }
 
 loadPreset = function(idx)
@@ -351,7 +333,7 @@ var worldToForm = function()
 
 var init_controls = function()
 {
-    $("#sld_replenishment").slider({
+    /*$("#sld_replenishment").slider({
         value: feed, min: 0, max:0.1, step:0.001,
         change: function(event, ui) {$("#replenishment").html(ui.value); feed = ui.value; updateShareString();},
         slide: function(event, ui) {$("#replenishment").html(ui.value); feed = ui.value; updateShareString();}
@@ -363,7 +345,7 @@ var init_controls = function()
         slide: function(event, ui) {$("#diminishment").html(ui.value); kill = ui.value; updateShareString();}
     });
     $("#sld_diminishment").slider("value", kill);
-    
+    */
     $('#share').keypress(function (e) {
         if (e.which == 13) {
             parseShareString();
@@ -439,9 +421,9 @@ parseShareString = function()
         newValues.push(v);
     }
     
-    $("#gradient").gradient("setValues", newValues);
-    feed = newFeed;
-    kill = newKill;
+    //$("#gradient").gradient("setValues", newValues);
+    //feed = newFeed;
+    //kill = newKill;
     worldToForm();
 }
 
