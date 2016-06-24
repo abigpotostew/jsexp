@@ -27,7 +27,7 @@ var currentFrameIdx=-1;
 var mUniforms;
 var mLastTime = 0;
 
-var mTexture1, mTexture2, tDrawSource, tOtherBuffer, currentDrawSource;
+var mTexture1, mTexture2, tDrawSource, tOtherBuffer, currentDrawSource, tOffBuffer;
 
 var mDrawMaterial, mScreenMaterial;
 var mScreenQuad;
@@ -51,7 +51,9 @@ init = function()
     canvas.onmouseup = onMouseUp;
     canvas.onmousemove = onMouseMove;
     
-    mRenderer = new THREE.WebGLRenderer({canvas: canvas, preserveDrawingBuffer: true});
+    mRenderer = new THREE.WebGLRenderer({canvas: canvas/*, preserveDrawingBuffer: true*/});
+    mRenderer.setClearColor(0x000000);
+    mRenderer.autoClear = true;
 
     mScene = new THREE.Scene();
     mCamera = new THREE.OrthographicCamera(-0.5, 0.5, 0.5, -0.5, -10000, 10000);
@@ -102,12 +104,14 @@ init = function()
 frame1 = function()
 {
     currentFrameIdx = 0;
+    mRenderer.clear();
     currentFrame = getFrameAt(currentFrameIdx);
 }
 
 frame2 = function()
 {
     currentFrameIdx = 1;
+    mRenderer.clear();
     currentFrame = getFrameAt(currentFrameIdx);
 }
 
@@ -132,19 +136,21 @@ var resize = function(width, height)
 
     var createFrame = function()
     {
-        return new THREE.WebGLRenderTarget(canvasWidth, canvasHeight,
+    	var out = new THREE.WebGLRenderTarget(canvasWidth, canvasHeight,
                         {minFilter: THREE.LinearFilter,
                          magFilter: THREE.LinearFilter,
                          format: THREE.RGBAFormat,
                          type: THREE.FloatType});
+        return out;
     }
 
     // TODO: Possible memory leak?
-    tDrawSource = createFrame();
-    tOtherBuffer = createFrame();
+    //tDrawSource = createFrame();
+    //tOtherBuffer = createFrame();
+    tOffBuffer = createFrame();
 
     frames.push( createFrame() );
-    frames.push( createFrame() );
+    //frames.push( createFrame() );
     currentDrawSource = getFrameAt(0);
 
 
@@ -165,7 +171,6 @@ var resize = function(width, height)
     //mRenderer.render (mScene, mCamera, mTexture1, true);
     mUniforms.brush.value = mMinusOnes;
 }
-var iter = 0;
 
 var render = function(time)
 {
@@ -180,14 +185,15 @@ var render = function(time)
     //mUniforms.kill.value = kill;
     
     //var currentFrame = null;
+    //currentDrawSource = getFrameAt (currentFrameIdx);
 
     if (mMouseDown){
         mScreenQuad.material = mDrawMaterial;
         mUniforms.drawSource.value = currentDrawSource.texture;
-        mRenderer.render(mScene, mCamera, tDrawSource, false);//tDrawSource
+        mRenderer.render(mScene, mCamera, tOffBuffer, true);//tDrawSource
 
-        frames[currentFrameIdx] = tDrawSource;
-        tDrawSource = currentDrawSource;
+        frames[currentFrameIdx] = tOffBuffer;
+        tOffBuffer = currentDrawSource;
         currentDrawSource = frames[currentFrameIdx];
         mUniforms.brush.value = mMinusOnes;
     }
@@ -198,12 +204,13 @@ var render = function(time)
     
     //pizza
 
+    //mRenderer.clear();
     mScreenQuad.material = mScreenMaterial;
     mUniforms.drawSource.value = currentDrawSource.texture;
+    //mRenderer.clear();
     mRenderer.render(mScene, mCamera, null, true);
     
     requestAnimationFrame(render);
-    //console.log("yo");
 }
 
 loadPreset = function(idx)
