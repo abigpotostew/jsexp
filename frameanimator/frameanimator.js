@@ -23,13 +23,14 @@ var mScene;
 var mCamera;
 var frames=[];
 var currentFrameIdx=-1;
+var numFrames=0;
 
 var mUniforms;
 var mLastTime = 0;
 
-var tOtherBuffer, currentDrawSource, tOffBuffer, tBlankTexture;
+var tOtherBuffer, currentDrawSource, tOffBuffer, tBlankTexture, tCombineBuffer;
 
-var mDrawMaterial, mScreenMaterial;
+var mDrawMaterial, mScreenMaterial,mCombineMaterial;
 var mScreenQuad;
 
 var mToggled = false;
@@ -64,15 +65,12 @@ init = function()
         screenWidth: {type: "f", value: undefined},
         screenHeight: {type: "f", value: undefined},
         drawSource: {type: "t", value: undefined},
+        otherSource : {type: "t", value: undefined},
         //delta: {type: "f", value: 1.0},
         //feed: {type: "f", value: feed},
         //kill: {type: "f", value: kill},
         brush: {type: "v2", value: new THREE.Vector2(-10, -10)},
-        color1: {type: "v4", value: new THREE.Vector4(0, 0, 0.0, 0)},
-        color2: {type: "v4", value: new THREE.Vector4(0, 1, 0, 0.2)},
-        color3: {type: "v4", value: new THREE.Vector4(1, 1, 0, 0.21)},
-        color4: {type: "v4", value: new THREE.Vector4(1, 0, 0, 0.4)},
-        color5: {type: "v4", value: new THREE.Vector4(1, 1, 1, 0.6)}
+        //color1: {type: "v4", value: new THREE.Vector4(0, 0, 0.0, 0)},
     };
     //mColors = [mUniforms.color1, mUniforms.color2, mUniforms.color3, mUniforms.color4, mUniforms.color5];
     //$("#gradient").gradient("setUpdateCallback", onUpdatedColor);
@@ -86,6 +84,11 @@ init = function()
                 uniforms: mUniforms,
                 vertexShader: document.getElementById('standardVertexShader').textContent,
                 fragmentShader: document.getElementById('screenFragmentShader').textContent,
+            });
+    mCombineMaterial = new THREE.ShaderMaterial({
+                uniforms: mUniforms,
+                vertexShader: document.getElementById('standardVertexShader').textContent,
+                fragmentShader: document.getElementById('combineFragmentShader').textContent,
             });
     
     var plane = new THREE.PlaneGeometry(1.0, 1.0);
@@ -137,25 +140,26 @@ var resize = function(width, height)
     mRenderer.setSize(canvasWidth, canvasHeight);
     
 
-    var createFrame = function()
+    var createFrame = function(isFrame)
     {
     	var out = new THREE.WebGLRenderTarget(canvasWidth, canvasHeight,
                         {minFilter: THREE.LinearFilter,
                          magFilter: THREE.LinearFilter,
                          format: THREE.RGBAFormat,
                          type: THREE.FloatType});
+        if(isFrame)++numFrames;
         return out;
     }
 
     // TODO: Possible memory leak?
     //tDrawSource = createFrame();
     //tOtherBuffer = createFrame();
-    tOffBuffer = createFrame();
-    tBlankTexture = createFrame();
+    tOffBuffer = createFrame(); // temporary buffer to draw to. used in main loop
+    tBlankTexture = createFrame(); //used to clear frames. don't draw to this
+    tCombineBuffer = createFrame();
 
-    frames.push( createFrame() );
-    frames.push( createFrame() );
-    //frames.push( createFrame() );
+    frames.push( createFrame(true) );
+    frames.push( createFrame(true) );
     setCurrentFrame(0);
 
 
@@ -210,11 +214,26 @@ var render = function(time)
     
     //pizza
 
+    (function(){ // combine all frames into one
+        cleanBuffer (tCombineBuffer);
+        mScreenQuad.material = mCombineMaterial;
+        var i=0;
+        for(i=0;i<numFrames;++i){
+            mUniforms.drawSource.value = frames[i].texture;
+            mUniforms.otherSource.value = tCombineBuffer.texture;
+            mRenderer.render(mScene, mCamera, tOffBuffer, true/*, (i==0)*/ );
+
+            var tmp = tCombineBuffer;
+            tCombineBuffer = tOffBuffer;
+            tOffBuffer = tmp;
+        }
+    })();
+
     //mRenderer.clear();
     mScreenQuad.material = mScreenMaterial;
-    mUniforms.drawSource.value = currentDrawSource.texture;
+    mUniforms.drawSource.value = tCombineBuffer.texture;//currentDrawSource.texture;
     //mRenderer.clear();
-    mRenderer.render(mScene, mCamera, null, true);
+    mRenderer.render(mScene, mCamera);//, null, false);
     
     requestAnimationFrame(render);
 }
@@ -268,12 +287,17 @@ var onMouseUp = function(e)
     mMouseDown = false;
 }
 
+var cleanBuffer = function(buffer)
+{
+    mUniforms.drawSource.value = tBlankTexture.texture;
+    mRenderer.render(mScene, mCamera, buffer, true);
+}
+
 clean = function()
 {
     mUniforms.brush.value = new THREE.Vector2(-10, -10);
     //currentDrawSource.clear();
-    mUniforms.drawSource.value = tBlankTexture.texture;
-    mRenderer.render(mScene, mCamera, currentDrawSource, true);
+    cleanBuffer (currentDrawSource);
 }
 
 snapshot = function()
