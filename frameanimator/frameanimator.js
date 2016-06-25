@@ -27,7 +27,7 @@ var currentFrameIdx=-1;
 var mUniforms;
 var mLastTime = 0;
 
-var mTexture1, mTexture2, tDrawSource, tOtherBuffer, currentDrawSource, tOffBuffer;
+var tOtherBuffer, currentDrawSource, tOffBuffer, tBlankTexture;
 
 var mDrawMaterial, mScreenMaterial;
 var mScreenQuad;
@@ -102,22 +102,25 @@ init = function()
 }
 
 frame1 = function()
-{
-    currentFrameIdx = 0;
+{   
+    setCurrentFrame(0);
     mRenderer.clear();
-    currentFrame = getFrameAt(currentFrameIdx);
 }
 
 frame2 = function()
 {
-    currentFrameIdx = 1;
+    setCurrentFrame(1);
     mRenderer.clear();
-    currentFrame = getFrameAt(currentFrameIdx);
 }
 
 var getFrameAt = function(i)
 {
     return frames[i];
+}
+var setCurrentFrame =function(i)
+{
+    currentFrameIdx = i;
+    currentDrawSource = getFrameAt(i);
 }
 
 var resize = function(width, height)
@@ -148,10 +151,12 @@ var resize = function(width, height)
     //tDrawSource = createFrame();
     //tOtherBuffer = createFrame();
     tOffBuffer = createFrame();
+    tBlankTexture = createFrame();
 
     frames.push( createFrame() );
+    frames.push( createFrame() );
     //frames.push( createFrame() );
-    currentDrawSource = getFrameAt(0);
+    setCurrentFrame(0);
 
 
     //tDrawSource = mTexture1;
@@ -171,6 +176,7 @@ var resize = function(width, height)
     //mRenderer.render (mScene, mCamera, mTexture1, true);
     mUniforms.brush.value = mMinusOnes;
 }
+
 
 var render = function(time)
 {
@@ -265,6 +271,9 @@ var onMouseUp = function(e)
 clean = function()
 {
     mUniforms.brush.value = new THREE.Vector2(-10, -10);
+    //currentDrawSource.clear();
+    mUniforms.drawSource.value = tBlankTexture.texture;
+    mRenderer.render(mScene, mCamera, currentDrawSource, true);
 }
 
 snapshot = function()

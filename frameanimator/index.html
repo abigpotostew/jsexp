@@ -54,16 +54,16 @@
                 float dv = 0.105*lapl.g + uv.r*uv.g*uv.g - (feed+kill)*uv.g;
                 vec2 dst = uv + delta*vec2(du, dv);*/
                 
-                vec3 rgb = texture2D(drawSource, vUv).rgb;
+                vec4 rgba = texture2D(drawSource, vUv).rgba;
                 if(brush.x > 0.0)
                 {
                     vec2 diff = (vUv - brush)/texel;
                     float dist = dot(diff, diff);
                     if(dist < 10.0)
-                        rgb= vec3( 0.,0.9,0.);
+                        rgba = vec4( 0.,0.9,0., 1.0);
                 }
                 
-                gl_FragColor = vec4(rgb, 1.0);
+                gl_FragColor = rgba;//vec4(rgb, 1.0);
             }
         </script>
         <script type="x-shader/x-fragment" id="screenFragmentShader">
@@ -190,8 +190,9 @@
                     <button id="btn_clear" onclick="clean()">Clear</button>
                     <button id="btn_snapshot" onclick="snapshot()">Take snapshot</button>
                     <button id="btn_fullscreen" onclick="fullscreen()">Fullscreen mode</button>
-                    <button id="btn_frame1" onclick="frame1()">Frame 1</button>
-                    <button id="btn_frame2" onclick="frame2()">Frame 2</button>
+                    <ul id="frame_list">
+                        <li><button id="btn_frame1" onclick="frame1()">Frame 1</button></li>
+                        <li><button id="btn_frame2" onclick="frame2()">Frame 2</button></li>
                 <p/>
                 <h4 class="unsafe">Advanced settings</h4>
                 Feed rate:
