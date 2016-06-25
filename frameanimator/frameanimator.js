@@ -19,7 +19,7 @@ var mMouseX, mMouseY;
 var mMouseDown = false;
 
 var mRenderer;
-var mScene;
+var mScene, mAnimationScene;
 var mCamera;
 var frames=[];
 var currentFrameIdx=-1;
