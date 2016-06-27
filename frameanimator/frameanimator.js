@@ -30,13 +30,18 @@ var mLastTime = 0;
 
 var tOtherBuffer, currentDrawSource, tOffBuffer, tBlankTexture, tCombineBuffer;
 
+var state,lastState;
+var states = {DRAW:0,ANIMATE:1};
+
 var mDrawMaterial, mScreenMaterial,mCombineMaterial;
 var mScreenQuad;
 
 var mToggled = false;
 
 var mMinusOnes = new THREE.Vector2(-1, -1);
+var mMinusTens = new THREE.Vector2(-10, -10);
 
+var animationQuads = [];
 
 
 (function(){
@@ -53,13 +58,17 @@ init = function()
     canvas.onmousemove = onMouseMove;
     
     mRenderer = new THREE.WebGLRenderer({canvas: canvas/*, preserveDrawingBuffer: true*/});
-    mRenderer.setClearColor(0x000000);
+    mRenderer.setClearColor(0x111111, 0.0);
     mRenderer.autoClear = true;
 
     mScene = new THREE.Scene();
     mCamera = new THREE.OrthographicCamera(-0.5, 0.5, 0.5, -0.5, -10000, 10000);
     mCamera.position.z = 100;
     mScene.add(mCamera);
+
+    mAnimationScene = new THREE.Scene();
+    mAnimationScene.add (mCamera);
+
     
     mUniforms = {
         screenWidth: {type: "f", value: undefined},
@@ -80,20 +89,30 @@ init = function()
             vertexShader: document.getElementById('standardVertexShader').textContent,
             fragmentShader: document.getElementById('drawFragmentShader').textContent,
         });
+    mDrawMaterial.transparent = true;
     mScreenMaterial = new THREE.ShaderMaterial({
                 uniforms: mUniforms,
                 vertexShader: document.getElementById('standardVertexShader').textContent,
                 fragmentShader: document.getElementById('screenFragmentShader').textContent,
             });
+    mScreenMaterial.transparent = true;
     mCombineMaterial = new THREE.ShaderMaterial({
                 uniforms: mUniforms,
                 vertexShader: document.getElementById('standardVertexShader').textContent,
                 fragmentShader: document.getElementById('combineFragmentShader').textContent,
             });
+    mCombineMaterial.transparent = true;
     
+    state = states.DRAW;
+    lastState = states.DRAW;
+
     var plane = new THREE.PlaneGeometry(1.0, 1.0);
     mScreenQuad = new THREE.Mesh (plane, mScreenMaterial);//new THREE.MeshBasicMaterial({color : new THREE.Color( 0xff0000 )}));//, mScreenMaterial);
     mScene.add(mScreenQuad);
+
+    var bg = new THREE.Mesh (new THREE.PlaneGeometry(1.0, 1.0), new THREE.MeshBasicMaterial({color : new THREE.Color( 0xff00ff )}));//, mScreenMaterial);
+    bg.position.z=-99;
+    mScene.add(bg);
     
     resize(canvas.clientWidth, canvas.clientHeight);
     
@@ -102,6 +121,8 @@ init = function()
     mLastTime = new Date().getTime();
     requestAnimationFrame(render);
     console.log("init");
+
+
 }
 
 frame1 = function()
@@ -162,6 +183,13 @@ var resize = function(width, height)
     frames.push( createFrame(true) );
     setCurrentFrame(0);
 
+    (function(buffers){//clear out all buffers
+        mUniforms.brush.value = mMinusTens;
+        mScreenQuad.material = mDrawMaterial;
+        for(b in buffers){
+            mRenderer.render (mScene, mCamera, b, false);
+        }
+    })();
 
     //tDrawSource = mTexture1;
     //tOtherBuffer = mTexture2;
@@ -181,7 +209,6 @@ var resize = function(width, height)
     mUniforms.brush.value = mMinusOnes;
 }
 
-
 var render = function(time)
 {
     var dt = (time - mLastTime)/20.0;
@@ -197,45 +224,112 @@ var render = function(time)
     //var currentFrame = null;
     //currentDrawSource = getFrameAt (currentFrameIdx);
 
-    if (mMouseDown){
-        mScreenQuad.material = mDrawMaterial;
-        mUniforms.drawSource.value = currentDrawSource.texture;
-        mRenderer.render(mScene, mCamera, tOffBuffer, true);//tDrawSource
+    //transition
+    if (state != lastState && state == states.ANIMATE)
+    {
+        //clear animation if necessary
+        for(var i=0;i<animationQuads.length;++i)
+        {
+            mAnimationScene.remove (animationQuads.quad);
+        }
+        
+        //setup animation
+        setupAnimationScene(mAnimationScene, animationQuads);
 
-        frames[currentFrameIdx] = tOffBuffer;
-        tOffBuffer = currentDrawSource;
-        currentDrawSource = frames[currentFrameIdx];
-        mUniforms.brush.value = mMinusOnes;
     }
 
-    
-    //if(mColorsNeedUpdate)
-    //    updateUniformsColors();
-    
-    //pizza
+    //do states
+    if (state==states.DRAW)
+    {
+        if (mMouseDown)
+        {
+            mScreenQuad.material = mDrawMaterial;
+            mUniforms.drawSource.value = currentDrawSource.texture;
+            mRenderer.render(mScene, mCamera, tOffBuffer, false);//tDrawSource
 
-    (function(){ // combine all frames into one
-        cleanBuffer (tCombineBuffer);
-        mScreenQuad.material = mCombineMaterial;
-        var i=0;
-        for(i=0;i<numFrames;++i){
-            mUniforms.drawSource.value = frames[i].texture;
-            mUniforms.otherSource.value = tCombineBuffer.texture;
-            mRenderer.render(mScene, mCamera, tOffBuffer, true/*, (i==0)*/ );
-
-            var tmp = tCombineBuffer;
-            tCombineBuffer = tOffBuffer;
-            tOffBuffer = tmp;
+            frames[currentFrameIdx] = tOffBuffer;
+            tOffBuffer = currentDrawSource;
+            currentDrawSource = frames[currentFrameIdx];
+            mUniforms.brush.value = mMinusOnes;
         }
-    })();
 
-    //mRenderer.clear();
-    mScreenQuad.material = mScreenMaterial;
-    mUniforms.drawSource.value = tCombineBuffer.texture;//currentDrawSource.texture;
-    //mRenderer.clear();
-    mRenderer.render(mScene, mCamera);//, null, false);
+        
+        //if(mColorsNeedUpdate)
+        //    updateUniformsColors();
+        
+
+        (function(){ // combine all frames into one
+            cleanBuffer (tCombineBuffer);
+            mScreenQuad.material = mCombineMaterial;
+            var i=0;
+            for(i=0;i<numFrames;++i){
+                mUniforms.drawSource.value = frames[i].texture;
+                mUniforms.otherSource.value = tCombineBuffer.texture;
+                mRenderer.render(mScene, mCamera, tOffBuffer, false/*, (i==0)*/ );
+
+                var tmp = tCombineBuffer;
+                tCombineBuffer = tOffBuffer;
+                tOffBuffer = tmp;
+            }
+        })();
+
+        //mRenderer.clear();
+        mScreenQuad.material = mScreenMaterial;
+        mUniforms.drawSource.value = tCombineBuffer.texture;//currentDrawSource.texture;
+        //mRenderer.clear();
+        mRenderer.render(mScene, mCamera);//, null, false);
+    }else if (state==states.ANIMATE)
+    {
+        mRenderer.setClearColor(0x111111, 0.0);
+        mRenderer.autoClear = true;
+        //step animate logic
+        //animationQuads
+        mRenderer.render(mAnimationScene, mCamera);
+    }
+
+
     
+    
+    lastState = state;
+
     requestAnimationFrame(render);
+}
+
+var setupAnimationScene = function (scene, quadList)
+{
+    var makeQuadContainer = function(plane,mat,quad)
+    {
+        var out = {plane:plane, mat:mat, quad:quad};
+        out.dispose=function(self)
+        {
+            self.quad = null;
+            self.mat = null;
+            self.plane = null;
+        }
+        return out;
+    }
+    var n = numFrames;
+    for(var i=0;i<numFrames;++i)
+    {
+        var plane = new THREE.PlaneGeometry(1.0, 1.0);
+        var mat = new THREE.MeshBasicMaterial( {color: new THREE.Color(i==0?1:0,i==1?1:0,0.,0.)})
+        mat.transparent = true;
+        mat.map = getFrameAt(i).texture;
+        var quad = new THREE.Mesh (plane, mat);//new THREE.MeshBasicMaterial({color : new THREE.Color( 0xff0000 )}));//, mScreenMaterial);
+        quad.position.z = -i; // for transparency to work
+        scene.add (quad);
+        quadList.push (makeQuadContainer (plane,mat,quad));
+    }
+}
+
+startAnimation = function()
+{
+    state = states.ANIMATE;
+}
+
+startDrawing = function()
+{
+    state = states.DRAW;
 }
 
 loadPreset = function(idx)

@@ -59,8 +59,10 @@
                 {
                     vec2 diff = (vUv - brush)/texel;
                     float dist = dot(diff, diff);
-                    if(dist < 10.0)
-                        rgba = vec4( 0.,0.9,0., 1.0);
+                    if(dist < 15.0){
+                        //dist = smoothstep(dist/15, .6,1.);
+                        rgba = vec4( 0.,.9,0., 1.0);
+                    }
                 }
                 
                 gl_FragColor = rgba;//vec4(rgb, 1.0);
@@ -129,7 +131,7 @@
     </head>
     <body>
         <header>
-            <h1>Reaction diffusion system (Gray-Scott model)</h1>
+            <h1>Gif Maker</h1>
         </header>
         <div id="simulation">
         <canvas id="myCanvas" class="viewer" style="width:1024px;height:512px"></canvas>
@@ -137,9 +139,10 @@
             <section id="instructions">
                 <header><h4>Instructions</h4></header>
                 <ol>
-                    <li>Paint some strokes on the canvas.</li>
-                    <li>Choose the evolution settings with the controls below.</li>
-                    <li>Watch the evolution.</li>
+                    <li>Do a little dance.</li>
+                    <li>Solve global political econimical crisis.</li>
+                    <li>Make a GIF.</li>
+                    <li>Have fun!</li>
                 </ol>
             </section>
             <section id="controls">
@@ -166,9 +169,12 @@
                     <button id="btn_clear" onclick="clean()">Clear</button>
                     <button id="btn_snapshot" onclick="snapshot()">Take snapshot</button>
                     <button id="btn_fullscreen" onclick="fullscreen()">Fullscreen mode</button>
+                    <button id="btn_draw" onclick="startDrawing()">Draw</button>
+                    <button id="btn_animate" onclick="startAnimation()">Animate</button>
                     <ul id="frame_list">
                         <li><button id="btn_frame1" onclick="frame1()">Frame 1</button></li>
                         <li><button id="btn_frame2" onclick="frame2()">Frame 2</button></li>
+                    </ul>   
                 <p/>
                 <h4 class="unsafe">Advanced settings</h4>
                 Feed rate:
