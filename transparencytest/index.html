@@ -25,10 +25,6 @@
             uniform float screenWidth;
             uniform float screenHeight;
             uniform sampler2D drawSource;
-            uniform vec3 brushColor;
-            //uniform float delta;
-            //uniform float feed;
-            //uniform float kill;
             uniform vec2 brush;
             
             vec2 texel = vec2(1.0/screenWidth, 1.0/screenHeight);
@@ -62,7 +58,7 @@
                     float dist = dot(diff, diff);
                     if(dist < 15.0){
                         //dist = smoothstep(dist/15, .6,1.);
-                        rgba = vec4( brushColor, 1.0);
+                        rgba = vec4( 0.,.9,0., 1.0);
                     }
                 }
                 
@@ -97,7 +93,7 @@
                 //vec4(texture2D(drawSource, vUv).rgba, 1.0);
             }
         </script>
-        <script type="text/javascript" src="frameanimator.js"></script>
+        <script type="text/javascript" src="transparencytest.js"></script>
         <meta charset="UTF-8">
         <!-- <style>
             #gradient

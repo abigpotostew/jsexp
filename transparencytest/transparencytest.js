@@ -75,7 +75,6 @@ init = function()
         screenHeight: {type: "f", value: undefined},
         drawSource: {type: "t", value: undefined},
         otherSource : {type: "t", value: undefined},
-        brushColor : {type:"v3", value: new THREE.Vector3(0.,0.,1.)},
         //delta: {type: "f", value: 1.0},
         //feed: {type: "f", value: feed},
         //kill: {type: "f", value: kill},
@@ -91,27 +90,76 @@ init = function()
             fragmentShader: document.getElementById('drawFragmentShader').textContent,
         });
     mDrawMaterial.transparent = true;
-    mScreenMaterial = new THREE.MeshBasicMaterial({color : new THREE.Color( 0xffffff )});
-    /*new THREE.ShaderMaterial({
+    mScreenMaterial = new THREE.ShaderMaterial({
                 uniforms: mUniforms,
                 vertexShader: document.getElementById('standardVertexShader').textContent,
                 fragmentShader: document.getElementById('screenFragmentShader').textContent,
-            });*/
+            });
     mScreenMaterial.transparent = true;
+    mCombineMaterial = new THREE.ShaderMaterial({
+                uniforms: mUniforms,
+                vertexShader: document.getElementById('standardVertexShader').textContent,
+                fragmentShader: document.getElementById('combineFragmentShader').textContent,
+            });
+    mCombineMaterial.transparent = true;
     
     state = states.DRAW;
     lastState = states.DRAW;
 
-    var plane = new THREE.PlaneGeometry(1.0, 1.0);
+    /*var plane = new THREE.PlaneGeometry(1.0, 1.0);
     mScreenQuad = new THREE.Mesh (plane, mScreenMaterial);//new THREE.MeshBasicMaterial({color : new THREE.Color( 0xff0000 )}));//, mScreenMaterial);
-    mScene.add(mScreenQuad);
+    mScene.add(mScreenQuad);*/
 
-    var bg = new THREE.Mesh (new THREE.PlaneGeometry(1.0, 1.0), new THREE.MeshBasicMaterial({color : new THREE.Color( 0xffffff )}));
-    bg.position.z = -9999;
-    mScene.add (bg);
+    /*var bg = new THREE.Mesh (new THREE.PlaneGeometry(1.0, 1.0), new THREE.MeshBasicMaterial({color : new THREE.Color( 0xff00ff )}));//, mScreenMaterial);
+    bg.position.z=-99;
+    mScene.add(bg);*/
     
-    resize (canvas.clientWidth, canvas.clientHeight);
+    resize(canvas.clientWidth, canvas.clientHeight);
     
+
+    
+
+
+
+    var plane2 = new THREE.PlaneGeometry(.5, .5);
+    var mat2 = new THREE.MeshBasicMaterial({color : new THREE.Color( 0xff00ff )});
+    mat2.transparent = true;
+    mat2.opacity = .5;
+    var mScreenQuad2 = new THREE.Mesh (plane2, mat2);//new THREE.MeshBasicMaterial({color : new THREE.Color( 0xff0000 )}));//, mScreenMaterial);
+    mScreenQuad2.position.x = .5;
+    mAnimationScene.add(mScreenQuad2);
+
+    var plane3 = new THREE.PlaneGeometry(.75, .75);
+    var mat3 = new THREE.MeshBasicMaterial({color : new THREE.Color( 0x0000ff )});
+    mat3.transparent = true;
+    mat3.opacity = .5
+    var mScreenQuad3 = new THREE.Mesh (plane3, mat3);//new THREE.MeshBasicMaterial({color : new THREE.Color( 0xff0000 )}));//, mScreenMaterial);
+    mScreenQuad3.position.z = -1;
+    mAnimationScene.add(mScreenQuad3);
+
+    
+    mRenderer.setClearColor(0x111111, 0.0);
+    mRenderer.autoClear = true;
+        //step animate logic
+        //animationQuads
+    mRenderer.render(mAnimationScene, mCamera, tDrawSource);
+
+
+    //backg
+    var plane = new THREE.PlaneGeometry(.75, .75);
+    var mat99 = new THREE.MeshBasicMaterial({color : new THREE.Color( 0xff00ff )});
+    mat99.map = tDrawSource.texture;
+    mat99.transparent = true;
+    mScreenQuad = new THREE.Mesh (plane, mat99); //new THREE.MeshBasicMaterial({color : new THREE.Color( 0xff0000 )}));//, mScreenMaterial);
+
+    mScene.add (mScreenQuad);
+
+    var bgplane = new THREE.PlaneGeometry(1, 1);
+    var bgmat = new THREE.MeshBasicMaterial({color : new THREE.Color( 0x00ff00 )});
+    var bgquad = new THREE.Mesh (bgplane, bgmat);//new THREE.MeshBasicMaterial({color : new THREE.Color( 0xff0000 )}));//, mScreenMaterial);
+    bgquad.position.z = -1000;
+    mScene.add (bgquad);
+
     render(0);
     //mUniforms.brush.value = new THREE.Vector2(0.5, 0.5);
     mLastTime = new Date().getTime();
@@ -169,39 +217,16 @@ var resize = function(width, height)
     }
 
     // TODO: Possible memory leak?
-    //tDrawSource = createFrame();
+    tDrawSource = createFrame();
     //tOtherBuffer = createFrame();
     tOffBuffer = createFrame(); // temporary buffer to draw to. used in main loop
     tBlankTexture = createFrame(); //used to clear frames. don't draw to this
-    tCombineBuffer = createFrame();
 
-    frames.push( createFrame(true) );
-    frames.push( createFrame(true) );
-    setCurrentFrame(0);
 
-    (function(buffers){//clear out all buffers
-        mUniforms.brush.value = mMinusTens;
-        mScreenQuad.material = mDrawMaterial;
-        for(b in buffers){
-            mRenderer.render (mScene, mCamera, b, false);
-        }
-    })();
 
-    //tDrawSource = mTexture1;
-    //tOtherBuffer = mTexture2;
-
-    /*mTexture1.wrapS = THREE.RepeatWrapping;
-    mTexture1.wrapT = THREE.RepeatWrapping;
-    mTexture2.wrapS = THREE.RepeatWrapping;
-    mTexture2.wrapT = THREE.RepeatWrapping;*/
     
     mUniforms.screenWidth.value = canvasWidth;
     mUniforms.screenHeight.value = canvasHeight;
-
-    //mUniforms.drawSource.value = mTexture1.texture;
-    //mRenderer.render (mScene, mCamera, mTexture2, true);
-    //mUniforms.drawSource.value = mTexture2.texture;
-    //mRenderer.render (mScene, mCamera, mTexture1, true);
     mUniforms.brush.value = mMinusOnes;
 }
 
@@ -212,7 +237,7 @@ var render = function(time)
         dt = 0.8;
     mLastTime = time;
     
-    //mScreenQuad.material = mGSMaterial;
+    //
     //mUniforms.delta.value = dt;
     //mUniforms.feed.value = feed;
     //mUniforms.kill.value = kill;
@@ -220,75 +245,14 @@ var render = function(time)
     //var currentFrame = null;
     //currentDrawSource = getFrameAt (currentFrameIdx);
 
-    //transition
-    if (state != lastState && state == states.ANIMATE)
-    {
-        //clear animation if necessary
-        for(var i=0;i<animationQuads.length;++i)
-        {
-            mAnimationScene.remove (animationQuads.quad);
-        }
-        
-        //setup animation
-        setupAnimationScene(mAnimationScene, animationQuads);
-
-    }
-
-    //do states
-    if (state==states.DRAW)
-    {
-        if (mMouseDown)
-        {
-            mScreenQuad.material = mDrawMaterial;
-            mUniforms.drawSource.value = currentDrawSource.texture;
-            mRenderer.render(mScene, mCamera, tOffBuffer, true);//tDrawSource
-
-            frames[currentFrameIdx] = tOffBuffer; //using array as tmp var
-            tOffBuffer = currentDrawSource;
-            currentDrawSource = frames[currentFrameIdx];
-            mUniforms.brush.value = mMinusOnes;
-        }
-
-        
-        //if(mColorsNeedUpdate)
-        //    updateUniformsColors();
-        
-
-        /*(function(){ // combine all frames into one
-            //cleanBuffer (tCombineBuffer);
-            mScreenQuad.material = mCombineMaterial;
-            var i=0;
-            for(i=0;i<numFrames;++i){
-                mUniforms.drawSource.value = frames[i].texture;
-                mUniforms.otherSource.value = tCombineBuffer.texture;
-                mRenderer.render(mScene, mCamera, tOffBuffer, false );// (i==0)
-
-                var tmp = tCombineBuffer;
-                tCombineBuffer = tOffBuffer;
-                tOffBuffer = tmp;
-            }
-        })();*/
-
-        mRenderer.setClearColor(0x111111, 0.0);
-        mRenderer.autoClear = true;
-        //mRenderer.clear();
-        mScreenQuad.material = mScreenMaterial;
-        mUniforms.drawSource.value = currentDrawSource.texture;//;tCombineBuffer.texture
-        //mRenderer.clear();
-        mRenderer.render(mScene, mCamera);//, null, false);
-    }else if (state==states.ANIMATE)
-    {
-        mRenderer.setClearColor(0x111111, 0.0);
-        mRenderer.autoClear = true;
+    mRenderer.setClearColor(0x111111, 0.0);
+    mRenderer.autoClear = true;
         //step animate logic
         //animationQuads
-        mRenderer.render(mAnimationScene, mCamera);
-    }
+    mRenderer.render(mScene, mCamera);
+    
 
 
-    
-    
-    lastState = state;
 
     requestAnimationFrame(render);
 }

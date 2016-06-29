@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+ <html>
+ <head>
+     <title>Pizza</title>
+     <link href="../3rd/jquery-ui/jquery-ui.css" rel="stylesheet">
+     <script type="text/javascript">
+        function getSketch(){
+        	return Processing.getInstanceById("sketch");
+        }
+        function frame(id) {
+	        var pjs = getSketch();
+	        pjs.setFrame(id);
+    	}
+    	function cleanFrame(){
+    		var pjs = getSketch();
+	        pjs.clearFrame();
+    	}
+		function setState(id){
+    		var pjs = getSketch();
+	        pjs.goToState(id);
+    	}
+    	function addFrame(){
+    		var pjs = getSketch();
+	        pjs.addFrame();
+    	}
+    	function removeFrame(){
+    		var pjs = getSketch();
+	        pjs.removeFrame();
+    	}
+    	
+       </script>
+   	 <script src="../3rd/jquery-1.6.2.min.js"></script>
+     <script src="../3rd/jquery-ui/jquery-ui.js"></script>
+     <script src="../3rd/processing.min.js"></script>
+     </head>
+ </head>
+ <body>
+     <h1>Processing.js Test</h1>
+     <p>This is my first Processing.js web-based sketch:</p>
+     <ul>
+     	<ul style="width:100px;" id="framesMenu">
+			<li>1</li>
+			<li>2</li>
+		</ul>
+     	<li><button id="btn_add" onclick="cleanFrame()"><span class="ui-icon ui-icon-plus"></span></li></button></li>
+     	<li><button id="btn_subtract" onclick="cleanFrame()"><span class="ui-icon ui-icon-trash"></span></button></li>
+     	<li><button id="btn_clear" onclick="cleanFrame()"><span class="ui-icon ui-icon-trash"></span></button></li>
+
+     	<li>
+     		<button id="btn_animate" onclick="setState(1)">
+				<span class="ui-icon ui-icon-play"></span>
+     		</button>
+ 		</li>
+     	<li>
+     		<button id="btn_draw" onclick="setState(0)">
+				<span class="ui-icon ui-icon-pause"></span>
+			</button>
+		</li>
+     </ul>
+     <script>
+     	frameCount = 2;
+     	var btns = ["btn_clear", "btn_animate", "btn_draw", "btn_add", "btn_subtract"];
+     	var i;
+     	for ( i=0;i<btns.length;++i)
+     	{
+			$( "#"+btns[i] ).button();
+     	}
+
+     	$("#btn_add").click (function(){
+     		addFrame();
+     		$("#framesMenu").append("<li>"+(++frameCount)+"</li>");
+     		$("#framesMenu").menu();
+     	});
+     	$("#btn_subtract").click (removeFrame);
+
+     	$("#framesMenu").menu();
+     	$("#framesMenu li").click(function() {
+     		var i = parseInt($(this).html());
+     		console.log(i-1);
+     		frame(i); 
+     	});
+
+
+	</script>
+     <canvas id="sketch" data-processing-sources="draw_animation_js/draw_animation_js.pde"></canvas>
+ </body>
+ </html>
