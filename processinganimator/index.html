@@ -32,6 +32,25 @@
    	 <script src="../3rd/jquery-1.6.2.min.js"></script>
      <script src="../3rd/jquery-ui/jquery-ui.js"></script>
      <script src="../3rd/processing.min.js"></script>
+     <style type="text/css">
+         #framesMenu {
+        margin: 0;
+        padding: 0;
+        }
+        #framesMenu li {
+            margin: 4px;
+            position: relative;
+            padding: 8px 0;
+            cursor: pointer;
+            float: left;
+            list-style: none;
+            background: yellow;
+        }
+        #framesMenu span.ui-icon {
+            float: left;
+            margin: 0 8px;
+        }
+     </style>
      </head>
  </head>
  <body>
@@ -42,6 +61,7 @@
 			<li>1</li>
 			<li>2</li>
 		</ul>
+        <br>
      	<li><button id="btn_add" onclick="cleanFrame()"><span class="ui-icon ui-icon-plus"></span></li></button></li>
      	<li><button id="btn_subtract" onclick="cleanFrame()"><span class="ui-icon ui-icon-trash"></span></button></li>
      	<li><button id="btn_clear" onclick="cleanFrame()"><span class="ui-icon ui-icon-trash"></span></button></li>
@@ -66,19 +86,23 @@
 			$( "#"+btns[i] ).button();
      	}
 
+        var frameevent = function() {
+            var i = parseInt($(this).html());
+            console.log(i-1);
+            frame(i);
+        };
+
      	$("#btn_add").click (function(){
      		addFrame();
-     		$("#framesMenu").append("<li>"+(++frameCount)+"</li>");
-     		$("#framesMenu").menu();
+            var li = $("<li>"+(++frameCount)+"</li>");
+     		$("#framesMenu").append(li);
+            $(li).click(frameevent);
+     		//$("#framesMenu").menu();
      	});
      	$("#btn_subtract").click (removeFrame);
 
-     	$("#framesMenu").menu();
-     	$("#framesMenu li").click(function() {
-     		var i = parseInt($(this).html());
-     		console.log(i-1);
-     		frame(i); 
-     	});
+     	//$("#framesMenu").menu();
+     	$("#framesMenu li").click (frameevent);
 
 
 	</script>

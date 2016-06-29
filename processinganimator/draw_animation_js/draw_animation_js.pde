@@ -55,7 +55,7 @@ void drawState(){
     current.endDraw();
   }
   
-  for(int i=0;i<drawBuffers.length;++i){
+  for(int i=0;i<bufferCt;++i){
     image(drawBuffers[i],0,0);
   }
 }
@@ -100,9 +100,14 @@ void drawSmeared(PGraphics[] frames, float numAngles, float numRepeats, float sc
 }
 
 void addFrame(){
-  
+  if( bufferCt++ == drawBuffers.length){
+    PGraphics[] newBuff = new PGraphics[drawBuffers.length*2];
+    arrayCopy (drawBuffers, newBuff);
+    drawBuffers = newBuff;
+  }
+  drawBuffers[bufferCt-1] = createGraphics (width,height);
 }
 
 void removeFrame(){
-  
+  //drawBuffers[bufferCt
 }
