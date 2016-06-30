@@ -2,7 +2,12 @@
  <html>
  <head>
      <title>Pizza</title>
+     <link href="style.css" rel="stylesheet">
      <link href="../3rd/jquery-ui/jquery-ui.css" rel="stylesheet">
+
+     <script type="text/javascript" src="js/gif.js"></script>
+    <script type="text/javascript" src="js/jsgif/b64.js"></script>
+
      <script type="text/javascript">
         function getSketch(){
         	return Processing.getInstanceById("sketch");
@@ -27,6 +32,33 @@
     		var pjs = getSketch();
 	        pjs.removeFrame();
     	}
+        function capture(){
+            
+            //var img = $("#sketch").get(0).toDataURL("image/gif");
+            //$("body").append("<img src="+img+" />");
+            gif.addFrame( $("#sketch")[0], {delay: 200, copy:true});
+
+        }
+        function startgif(){
+            gif = new GIF({
+              workers: 2,
+              quality: 10,
+              workerScript : "js/gif.worker.js",
+            });
+
+        }
+        function endgif(){
+             // encoder.finish();
+             //  var binary_gif = encoder.stream().getData() //notice this is different from the as3gif package!
+             //  var data_url = 'data:image/gif;base64,'+encode64(binary_gif);
+             //  $("body").append("<img src="+data_url+" />");
+
+            gif.on('finished', function(blob) {
+                window.open(URL.createObjectURL(blob));
+            });
+
+            gif.render();
+        }
     	
        </script>
    	 <script src="../3rd/jquery-1.6.2.min.js"></script>
@@ -54,29 +86,101 @@
      </head>
  </head>
  <body>
-     <h1>Processing.js Test</h1>
-     <p>This is my first Processing.js web-based sketch:</p>
-     <ul>
-     	<ul style="width:100px;" id="framesMenu">
-			<li>1</li>
-			<li>2</li>
-		</ul>
-        <br>
-     	<li><button id="btn_add" onclick="cleanFrame()"><span class="ui-icon ui-icon-plus"></span></li></button></li>
-     	<li><button id="btn_subtract" onclick="cleanFrame()"><span class="ui-icon ui-icon-trash"></span></button></li>
-     	<li><button id="btn_clear" onclick="cleanFrame()"><span class="ui-icon ui-icon-trash"></span></button></li>
+ <header>
+            <h1>Gif Maker</h1>
+        </header>
+     
+        <div id="simulation">
+        <canvas id="sketch" data-processing-sources="draw_animation_js/draw_animation_js.pde"></canvas>
+        <aside class="panel">
+            <section id="instructions">
+                <header><h4>Instructions</h4></header>
+                <ol>
+                    <li>Do a little dance.</li>
+                    <li>Solve global political econimical crisis.</li>
+                    <li>Make a GIF.</li>
+                    <li>Have fun!</li>
+                </ol>
+            </section>
+            <section id="controls">
+                <!--header><h4>Controls</h4></header-->
 
-     	<li>
-     		<button id="btn_animate" onclick="setState(1)">
-				<span class="ui-icon ui-icon-play"></span>
-     		</button>
- 		</li>
-     	<li>
-     		<button id="btn_draw" onclick="setState(0)">
-				<span class="ui-icon ui-icon-pause"></span>
-			</button>
-		</li>
-     </ul>
+                <p style="text-align:center">
+                <ul style="width:100px;" id="framesMenu">
+                    <li>1</li>
+                    <li>2</li>
+                </ul>
+                <br>
+                 <ul>
+                    <li><button id="btn_add" onclick="addFrame()"><span class="ui-icon ui-icon-plus"></span></li></button></li>
+                    <li><button id="btn_subtract" onclick="cleanFrame()"><span class="ui-icon ui-icon-trash"></span></button></li>
+                    <li><button id="btn_clear" onclick="cleanFrame()"><span class="ui-icon ui-icon-trash"></span></button></li>
+
+                    <li>
+                        <button id="btn_animate" onclick="setState(1)">
+                            <span class="ui-icon ui-icon-play"></span>
+                        </button>
+                    </li>
+                    <li>
+                        <button id="btn_draw" onclick="setState(0)">
+                            <span class="ui-icon ui-icon-pause"></span>
+                        </button>
+                    </li>
+                    <li>
+                        <button id="btn_capture" onclick="capture()">
+                            Capture Frame
+                        </button>
+                    </li>
+                    <li>
+                        <button id="btn_start" onclick="startgif()">
+                            Start Gif
+                        </button>
+                    </li>
+                    <li>
+                        <button id="btn_end" onclick="endgif()">
+                            End Gif
+                        </button>
+                    </li>
+                 </ul>
+                <p/>
+                <h4 class="unsafe">Advanced settings</h4>
+                Feed rate:
+                <span class="remark" id="replenishment"></span><br/>
+                <div id="sld_replenishment" class="slider"></div>
+                
+                Death rate:
+                <span class ="remark" id="diminishment"></span><br/>
+                <div id="sld_diminishment" class="slider"></div>
+                Colors:
+                <div id="gradient" style=""></div>
+                <div style="font-size:x-small">Share (paste and press enter):</div>
+                <div style="text-align:center"><input id="share" style="width:85%"/></div>
+            </section>
+        </aside>
+        </div>
+        <footer>
+                <div id="copyright">
+                        &copy;2016
+                        <a href="https://twitter.com/stewbracken">@stewbracken</a>
+                        <a href="https://github.com/abigpotostew/jsexp">Github</a>
+                        <a id="notworking" href="#">Not working?</a>
+                </div>
+        </footer>
+        
+        <div id="requirement_dialog" title="Requirements">
+            <p>This simulation requires the GL extensions framebuffer_object and texture_float.
+            If you cannot see the simulation your system probably lacks at least one of these extensions.</p>
+            
+            <p>In Google Chrome, you can see the available GL extensions going to chrome://gpu.</p>
+        </div>
+
+
+
+
+
+
+
+
      <script>
      	frameCount = 2;
      	var btns = ["btn_clear", "btn_animate", "btn_draw", "btn_add", "btn_subtract"];
@@ -106,6 +210,6 @@
 
 
 	</script>
-     <canvas id="sketch" data-processing-sources="draw_animation_js/draw_animation_js.pde"></canvas>
+     
  </body>
  </html>

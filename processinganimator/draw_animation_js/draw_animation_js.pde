@@ -10,7 +10,7 @@ int DRAW=0;
 int ANIM=1;
 
 void setup(){
-  size(500,500);
+  size(700,700);
   initBuffers(2);
   pMouse = new PVector();
 }
@@ -55,6 +55,7 @@ void drawState(){
     current.endDraw();
   }
   
+  image(current,0,0);
   for(int i=0;i<bufferCt;++i){
     image(drawBuffers[i],0,0);
   }
