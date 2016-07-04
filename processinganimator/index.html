@@ -32,27 +32,20 @@
     		var pjs = getSketch();
 	        pjs.removeFrame();
     	}
-        function capture(){
-            
-            //var img = $("#sketch").get(0).toDataURL("image/gif");
-            //$("body").append("<img src="+img+" />");
-            gif.addFrame( $("#sketch")[0], {delay: 200, copy:true});
-
-        }
-        function startgif(){
-            gif = new GIF({
+        function creategif(){
+        	var gif = new GIF({
               workers: 2,
               quality: 10,
               workerScript : "js/gif.worker.js",
             });
-
-        }
-        function endgif(){
-             // encoder.finish();
-             //  var binary_gif = encoder.stream().getData() //notice this is different from the as3gif package!
-             //  var data_url = 'data:image/gif;base64,'+encode64(binary_gif);
-             //  $("body").append("<img src="+data_url+" />");
-
+            var canvas = $("#sketch")[0]; //canvas
+            var pjs = getSketch(); //processing hook
+            var ct = pjs.getNumFrames();
+            console.log(ct);
+            for(var i=0;i<ct;++i){
+            	pjs.gifState(i);
+     			gif.addFrame( canvas, {delay: 200, copy:true});
+            }
             gif.on('finished', function(blob) {
                 window.open(URL.createObjectURL(blob));
             });
@@ -112,8 +105,8 @@
                 </ul>
                 <br>
                  <ul>
-                    <li><button id="btn_add" onclick="addFrame()"><span class="ui-icon ui-icon-plus"></span></li></button></li>
-                    <li><button id="btn_subtract" onclick="cleanFrame()"><span class="ui-icon ui-icon-trash"></span></button></li>
+                    <li><button id="btn_add"><span class="ui-icon ui-icon-plus"></span></li></button></li>
+                    <li><button id="btn_subtract" onclick="cleanFrame()"><span class="ui-icon ui-icon-minus"></span></button></li>
                     <li><button id="btn_clear" onclick="cleanFrame()"><span class="ui-icon ui-icon-trash"></span></button></li>
 
                     <li>
@@ -127,18 +120,8 @@
                         </button>
                     </li>
                     <li>
-                        <button id="btn_capture" onclick="capture()">
-                            Capture Frame
-                        </button>
-                    </li>
-                    <li>
-                        <button id="btn_start" onclick="startgif()">
-                            Start Gif
-                        </button>
-                    </li>
-                    <li>
-                        <button id="btn_end" onclick="endgif()">
-                            End Gif
+                        <button id="btn_create" onclick="creategif()">
+                            CREATE Gif AUTO
                         </button>
                     </li>
                  </ul>
@@ -197,13 +180,17 @@
         };
 
      	$("#btn_add").click (function(){
+     		console.log("add!!");
      		addFrame();
             var li = $("<li>"+(++frameCount)+"</li>");
      		$("#framesMenu").append(li);
             $(li).click(frameevent);
      		//$("#framesMenu").menu();
      	});
-     	$("#btn_subtract").click (removeFrame);
+     	$("#btn_subtract").click (function(){
+     		--frameCount;
+     		removeFrame();
+     	});
 
      	//$("#framesMenu").menu();
      	$("#framesMenu li").click (frameevent);

@@ -5,9 +5,13 @@ int bufferCt = 0;
 
 PVector pMouse;
 
+color bg = color(50);
+
 int state=0;
-int DRAW=0;
-int ANIM=1;
+final int DRAW=0;
+final int ANIM=1;
+final int GIF=2;
+final int NUMSTATES = 3;
 
 void setup(){
   size(700,700);
@@ -27,20 +31,24 @@ void initBuffers(int ct){
 }
 
 void draw(){
-  background(50);
+  
   
   if (state==DRAW){
+    background(bg);
     drawState();
   }
-  else {
+  else if (state==ANIM){
+    background(bg);
     animateState();
+  }else if (state == GIF){
+    
   }
   
   pMouse.set (mouseX,mouseY);
 }
 
 void goToState(int state_id){
-  state = state_id%2;
+  state = state_id%NUMSTATES;
 }
 
 void drawState(){
@@ -61,10 +69,22 @@ void drawState(){
   }
 }
 
-void animateState(){
-  
-  drawSmeared(drawBuffers, 10, 3, 1f/2.6, 2.5);
+int getNumFrames(){
+  return bufferCt;
+}
 
+void gifState(int bufferidx){
+  background(bg);
+  PGraphics buff = getBuff(bufferidx);
+  image(buff,0,0);
+}
+
+void animateState(){
+  drawSmeared(drawBuffers, 10, 3, 1f/2.6, 2.5);
+}
+
+PGraphics getBuff(int i){
+  return drawBuffers[i%bufferCt];
 }
 
 PGraphics getCurrBuffer(){
@@ -101,14 +121,21 @@ void drawSmeared(PGraphics[] frames, float numAngles, float numRepeats, float sc
 }
 
 void addFrame(){
+  println("before");
+  println(bufferCt);
+  println(drawBuffers.length);
   if( bufferCt++ == drawBuffers.length){
     PGraphics[] newBuff = new PGraphics[drawBuffers.length*2];
     arrayCopy (drawBuffers, newBuff);
     drawBuffers = newBuff;
   }
   drawBuffers[bufferCt-1] = createGraphics (width,height);
+  println("after");
+  println(bufferCt);
+  println(drawBuffers.length);
 }
 
 void removeFrame(){
   //drawBuffers[bufferCt
+  println("remove frame is not implemented!");
 }
